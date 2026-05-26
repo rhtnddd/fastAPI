@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Todo List</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .completed { text-decoration: line-through; color: gray; }
+    </style>
+</head>
+<body>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+<script>
+    async function create() {
+        $.ajax({
+            type: 'POST',
+            url: '/todo',
+            contentType: 'application/json',
+            data: JSON.stringify({ task: $("#create_task").val() })
+        }).done(function(result) {
+            $("#task_list").append(`
+                <li class="list-group-item d-flex justify-content-between align-items-center" id="${result.todo_id}">
+                    <span id="${result.todo_id}_span">
+                        ${result.task}
+                    </span>
+                    <div>
+                        <a onclick="modify_task(${result.todo_id})" class="btn btn-success btn-sm ml-2">Complete</a>
+                        <a onclick="delete_task(${result.todo_id})" class="btn btn-danger btn-sm ml-2">Delete</a>
+                    </div>
+                </li>
+            `);
+            $("#create_task").val(""); // 입력창 초기화
+        }).fail(function(result) {
+            alert(result.responseJSON?.detail);
+        })
+    }
+
+    async function delete_task(todo_id) {
+        $.ajax({
+                type: 'DELETE',
+                url: '/todo/' + todo_id,
+            }).done(function() {
+                $("#" + todo_id).remove()
+            }).fail(function(result) {
+                alert(result.responseJSON?.detail)
+            })
+    }
+
+    async function modify_task(todo_id) {
+        $.ajax({
+                type: 'PATCH',
+                url: '/todo/' + todo_id,
+            }).done(function(result) {
+                if(result.completed) {
+                    $("#" + todo_id + "_span").addClass("completed")
+                } else {
+                    $("#" + todo_id + "_span").removeClass("completed")
+                }
+            }).fail(function(result) {
+                alert(result.responseJSON?.detail)
+            })
+    }
+</script>
+
+<div class="container mt-5" style="max-width: 600px;">
+    <h1 class="text-center mb-4">AI 지능형 Todo List 🚀</h1>
+    <div class="input-group mb-3">
+        <input type="text" class="form-control" id="create_task" placeholder="할 일을 입력하세요 (예: 한강 공원 런닝하기)">
+        <div class="input-group-append">
+            <button type="submit" class="btn btn-primary" onclick="create()">Add Task</button>
+        </div>
+    </div>
+
+    <ul class="list-group" id="task_list">
+        {% for todo in todos %}
+            <li class="list-group-item d-flex justify-content-between align-items-center" id="{{ todo.todo_id }}">
+                <span class="{% if todo.completed %}completed{% endif %}" id="{{ todo.todo_id }}_span">
+                    {{ todo.task }}
+                </span>
+                <div>
+                    <a onclick="modify_task({{todo.todo_id}})" class="btn btn-success btn-sm ml-2">Complete</a>
+                    <a onclick="delete_task({{todo.todo_id}})" class="btn btn-danger btn-sm ml-2">Delete</a>
+                </div>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+</body>
+</html>
