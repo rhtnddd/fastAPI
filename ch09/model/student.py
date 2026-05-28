@@ -1,29 +1,31 @@
+# model/student.py
+# 역할: 1계층 (Entity) - DB 테이블 설계
+
 import enum
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, Enum
+from sqlalchemy import Column, Integer, String, Enum, ForeignKey
 from sqlalchemy.orm import relationship
 from ch09.db_connect import Base
+
 
 class Gender(enum.Enum):
     MALE = "MALE"
     FEMALE = "FEMALE"
 
-class Student(Base):
-    __tablename__ = "student"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String, nullable=False)
-    gender = Column(Enum(Gender), nullable=False)
-    score = Column(Float, default=0.0)
-    department_id = Column(Integer, ForeignKey('department.id'), nullable=False)
-    preferred_department_id = Column(Integer, ForeignKey('department.id'), nullable=True)
-    # 파이썬 객체에서만 존재하는 가상 속성
-    department = relationship(
-        "Department",
-        back_populates="students",
-        foreign_keys=[department_id]
-    )
 
-    preferred_department = relationship(
-        "Department",
-        back_populates="preferred_students",
-        foreign_keys=[preferred_department_id]
-    )
+class Student(Base):
+    __tablename__ = "students"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    name = Column(String(50), nullable=False)
+    gender = Column(Enum(Gender), nullable=False)
+
+    # 소속 학과 (실제 학과)
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
+    department = relationship("Department", foreign_keys=[department_id], back_populates="students")
+
+    # 지망 학과
+    preferred_department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
+    preferred_department = relationship("Department", foreign_keys=[preferred_department_id])
+
+    def __repr__(self):
+        return f"<Student(id={self.id}, name={self.name}, gender={self.gender})>"

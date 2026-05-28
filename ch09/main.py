@@ -1,31 +1,27 @@
-from contextlib import asynccontextmanager
-import uvicorn
-from fastapi import FastAPI, Depends
-from sqlalchemy.orm import Session
-from ch09.db_connect import engine, Base, get_db
-import ch09.model.department as department_model
-import ch09.model.student as student_model
+# main.py
+# 역할: 진입점 - FastAPI 앱 및 라우터 등록
+
+from fastapi import FastAPI
+from ch09.db_connect import Base, engine
+
+# 모델을 import해야 Base.metadata에 테이블 정보가 등록됩니다
+from ch09.model import department, student  # noqa: F401 (side-effect import)
+from ch09.web import student as student_router
+
+# ── 테이블 자동 생성 ─────────────────────────────────────────────────
+Base.metadata.create_all(bind=engine)
+
+# ── FastAPI 앱 생성 ──────────────────────────────────────────────────
+app = FastAPI(
+    title="학생 관리 API",
+    description="FastAPI + SQLAlchemy 5계층 구조 실습",
+    version="1.0.0",
+)
+
+# ── 라우터 등록 ──────────────────────────────────────────────────────
+app.include_router(student_router.router)
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # 내부적으로 "CREATE TABLE IF NOT EXISTS" 와 동일하게 동작
-    Base.metadata.create_all(engine)
-    print("[앱 시작] DB 테이블 생성")
-    yield
-    print("[앱 종료] 서버 종료")
-app = FastAPI(lifespan=lifespan)
-@app.get("/")
-def index(db: Session = Depends(get_db)):
-    dept = department_model.Department(name="공통학과", personnel=64)
-    db.add(dept)
-    db.commit()
-    db.refresh(dept)
-    print(dept.id)
-    student = student_model.Student(name="ahn", gender=student_model.Gender.FEMALE, department_id=dept.id)
-    db.add(student)
-    db.commit()
-    return {"message": "Department assignment system"}
-
-if __name__ == '__main__':
-    uvicorn.run("main:app", host='0.0.0.0', port=8000, reload=True)
+@app.get("/", tags=["Health"])
+def root():
+    return {"message": "학생 관리 API 서버가 정상 동작 중입니다."}
